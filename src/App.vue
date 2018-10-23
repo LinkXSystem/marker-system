@@ -829,6 +829,20 @@ export default {
   background-color: #c72923 !important;
 }
 
+@media only screen and (max-width: 768px) {
+  .navbar-block {
+    padding: 5px 5px;
+
+    .username {
+      display: none;
+    }
+
+    .category-container {
+      padding: 5px 5px;
+    }
+  }
+}
+
 @media only screen and (max-width: 420px) {
   .navbar-block {
     padding: 5px 5px;
@@ -863,7 +877,7 @@ export default {
     }
 
     .username {
-      font-size: 12px;
+      display: none;
     }
 
     .category-container {
@@ -896,38 +910,10 @@ export default {
   .count-container {
     transform: scale(0.75);
   }
-}
 
-@media only screen and (max-width: 768px) {
-  .navbar-block {
-    padding: 5px 5px;
-
-    .logo {
-      width: 42px;
-      height: 42px;
-      margin-right: 10px;
-    }
-
-    .user-container {
-      padding: 0px 10px;
-
-      .user-container span {
-        font-size: 12px;
-      }
-
-      .user-container img {
-        width: 16px;
-        height: 16px;
-      }
-    }
-
-    .username {
-      display: none;
-    }
-
-    .category-container {
-      padding: 5px 5px;
-    }
+  .word-list {
+    font-size: 16px;
+    padding: 10px 10px;
   }
 }
 </style>
