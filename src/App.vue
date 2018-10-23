@@ -418,7 +418,19 @@ export default {
       }
 
       // 提交标记
-      this.onNetworkMark(mark_result);
+      await this.onNetworkMark(mark_result).catch(err => {
+        this.message = '服务器错误，请重新提交';
+        this.$refs.tip.handlerError();
+
+        if (word.old_mark_list === undefined) {
+          this.answer.pop();
+          this.count -= 1;
+          window.sessionStorage.setItem('count', this.count);
+        }
+
+        throw err;
+      });
+
       // 判断当前指针是否大于答案缓存
       if (pointer + 1 < this.answer.length) {
         let temp = {};
@@ -591,19 +603,27 @@ export default {
     },
 
     async onNetworkMark(marker) {
-      /* eslint-disable */
-      const { data } = await mark(marker).catch(error => {});
+      return new Promise(async (resolve, reject) => {
+        /* eslint-disable */
+        const { data } = await mark(marker).catch(error => {
+          reject();
+        });
 
-      if (data.status) {
-        Cookies.setCookie('token', '');
-        this.visible = true;
-      }
+        if (data.status) {
+          Cookies.setCookie('token', '');
+          this.visible = true;
+        }
+
+        resolve();
+      });
     },
 
     onNetworkValid(entity) {
       return new Promise(async (resolve, reject) => {
         /* eslint-disable */
-        const { data } = await valid(entity).catch(err => {});
+        const { data } = await valid(entity).catch(err => {
+          reject();
+        });
 
         if (data.status) {
           Cookies.setCookie('token', '');
@@ -628,9 +648,9 @@ export default {
       /* eslint-disable */
       const { data } = await commit(entity).catch(err => {
         /* eslint-disable */
-        console.log('====================================');
-        console.log(err);
-        console.log('====================================');
+        this.message = '服务器错误，请重新提交';
+        this.$refs.tip.handlerError();
+        throw err;
         /* eslint-disable */
       });
 
