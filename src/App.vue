@@ -52,6 +52,18 @@
         </div>
         <div />
       </div>-->
+      <!-- <div
+        class="marker-list marker-bottom"
+      >
+        <marker-container
+          v-for="(item, index) in MarkersProxyList"
+          :key="index"
+          :marker="item"
+          :word="word"
+          @select="onSelectMarker"
+          @cancal="onCancalMarker"
+        />
+      </div>-->
       <div
         class="marker-list"
       >
@@ -62,6 +74,7 @@
           :word="word"
           @select="onSelectMarker"
           @cancal="onCancalMarker"
+          @tip="onTipMarker"
         />
       </div>
       <div class="word-list">
@@ -79,7 +92,7 @@
           <span
             v-if="word_tip"
             class="word-tip"
-          >至多可选 4 个分类</span>
+          >至多可选 6 个分类</span>
         </div>
         <switch-container
           :direction="true"
@@ -99,6 +112,11 @@
         @complete="onHandleComplete"
         @answer="onHandleNextAnswer"
       />
+      <commit-container
+        :commit="commit"
+        @commit="onHanlerCommit"
+        @close="onHanlerClose"
+      />
     </div>
   </div>
 </template>
@@ -114,6 +132,7 @@ import SearchContainer from './components/search-container';
 import CountContainer from './components/count-container';
 import UserContainer from './components/user-container';
 import ResultContainer from './components/result-container';
+import CommitContainer from './components/commit-container';
 
 import Marker from './config/marker';
 import Category from './config/category';
@@ -129,7 +148,7 @@ export default {
       categorys: Category.data,
       markers: Marker.data,
       token: '',
-      visible: true,
+      visible: true, // 登陆弹框
       alternative: null,
       pointer: 0,
       word: {},
@@ -141,8 +160,10 @@ export default {
       colors: ['#4caf50', '#607d8b', '#e24045', '#ffc700'],
       username: '',
       task: 0,
-      word_tip: false,
-      complete: false,
+      word_tip: false, // 显示词语弹框
+      complete: false, // 显示完成弹框
+      log_time: 0,
+      commit: false, // 显示确认提交弹框
     };
   },
 
@@ -157,6 +178,7 @@ export default {
     CountContainer,
     UserContainer,
     ResultContainer,
+    CommitContainer,
   },
 
   created() {
@@ -165,11 +187,12 @@ export default {
     const count = window.sessionStorage.getItem('count');
     const username = window.sessionStorage.getItem('username');
     const task = window.sessionStorage.getItem('task');
-    this.count = Number.parseInt(count) || 0;
-    this.task = Number.parseInt(task) || 0;
+    this.count = Number.parseInt(count, 10) || 0;
+    this.task = Number.parseInt(task, 10) || 0;
     this.username = username;
 
-    if (this.count >= this.task) {
+    // 防止无限提交
+    if (this.task && this.count >= this.task) {
       this.complete = true;
     }
 
@@ -180,6 +203,9 @@ export default {
         token,
       });
       this.onNetworkSubject(token);
+    } else {
+      // 初始化工作
+      this.visible = true;
     }
   },
 
@@ -189,20 +215,20 @@ export default {
         this.onNetworkSubject(this.token);
       }
     },
-    word(n) {
-      // clearTimeout(this.timer);
+    // word(n) {
+    //   // clearTimeout(this.timer);
 
-      if (n.mark_list && n.mark_list.length === 4) {
-        // this.word_tip = true;
-        // this.timer = setTimeout(() => {
-        //   this.word_tip = false;
-        // }, 300);
-        this.word_tip = true;
-        return;
-      }
+    //   if (n.mark_list && n.mark_list.length === 6) {
+    //     // this.word_tip = true;
+    //     // this.timer = setTimeout(() => {
+    //     //   this.word_tip = false;
+    //     // }, 300);
+    //     this.word_tip = true;
+    //     return;
+    //   }
 
-      this.word_tip = false;
-    },
+    //   this.word_tip = false;
+    // },
   },
 
   computed: {
@@ -214,6 +240,10 @@ export default {
     // UsernameProxy() {
     //   return String.prototype.toUpperCase.apply(this.username);
     // }
+
+    // MarkersProxyList() {
+    //   return this.markers.splice(20);
+    // },
   },
 
   destroyed() {
@@ -229,7 +259,7 @@ export default {
     onSelectMarker(marker) {
       const { word } = this;
 
-      let temp = word.mark_list;
+      const temp = word.mark_list;
 
       if (!temp) {
         this.word = Object.assign({}, word, {
@@ -238,10 +268,10 @@ export default {
         return;
       }
 
-      let instance = temp.find(item => item === marker.uuid);
+      const instance = temp.find(item => item === marker.uuid);
 
       if (instance) {
-        let ntemp = temp.filter(item => item !== marker.uuid);
+        const ntemp = temp.filter(item => item !== marker.uuid);
         this.word = Object.assign({}, word, {
           mark_list: ntemp,
         });
@@ -258,7 +288,24 @@ export default {
       this.marker = null;
     },
 
-    onBuildAnswer(serial) {},
+    onTipMarker() {
+      if (this.ctimer) {
+        clearTimeout(this.ctimer);
+      }
+
+      if (this.word.mark_list <= 6) {
+        this.word_tip = false;
+        return;
+      }
+
+      this.word_tip = true;
+
+      this.ctimer = setTimeout(() => {
+        this.word_tip = false;
+      }, 300);
+    },
+
+    onBuildAnswer() {},
 
     onHandleError(error) {
       const { message } = error;
@@ -266,8 +313,8 @@ export default {
       this.$refs.tip.handlerError();
     },
 
-    onHandlerSearch(keyword) {
-      const rege = new RegExp();
+    onHandlerSearch() {
+      // const rege = new RegExp();
     },
 
     onHandlerCategory(category) {
@@ -276,7 +323,7 @@ export default {
         return;
       }
 
-      if (this.category && this.category.name == category.name) {
+      if (this.category && this.category.name === category.name) {
         this.category = null;
         return;
       }
@@ -289,9 +336,10 @@ export default {
     },
 
     onPrevWord() {
+      /* eslint-disable */
       let { pointer, answer, word } = this;
 
-      if (0 >= pointer) {
+      if (pointer <= 0) {
         return;
       }
 
@@ -299,7 +347,7 @@ export default {
 
       pointer -= 1;
 
-      let temp = answer[pointer];
+      const temp = answer[pointer];
 
       this.word = Object.assign({}, temp, {
         old_mark_list: [].concat(temp.mark_list),
@@ -307,9 +355,34 @@ export default {
 
       this.pointer = pointer;
       this.category = null;
+      /* eslint-disable */
     },
 
     onNextWord() {
+      const timestamp = new Date().getTime();
+
+      if (timestamp - this.log_time < 1500) {
+        this.message = '操作太频繁, 请稍等';
+        this.log_time = timestamp;
+        this.$refs.tip.handlerError();
+        return;
+      }
+
+      // 防止无限点击
+      if (this.task && this.count >= this.task) {
+        this.complete = true;
+        return;
+      }
+
+      if (!this.commit && this.count + 1 === this.task) {
+        this.commit = true;
+        return;
+      }
+
+      this.commit = false;
+
+      this.log_time = timestamp;
+
       const { pointer, words, word, token } = this;
 
       if (pointer >= words.length) {
@@ -338,7 +411,7 @@ export default {
       if (pointer + 1 < this.answer.length) {
         let temp = {};
 
-        if (this.answer[pointer + 1].ord_mark_list) {
+        if (this.answer[pointer + 1].old_mark_list) {
           temp = Object.assign({}, this.answer[pointer + 1], {
             old_mark_list: [].concat(this.answer[pointer + 1].mark_list),
           });
@@ -364,25 +437,41 @@ export default {
       }
     },
 
-    onKeydownEvent() {
-      document.onkeydown = event => {
-        if (event.keyCode === 39) {
-          if (this.timer) {
-            clearTimeout(this.timer);
-          }
+    onHanlerCommit() {
+      this.onNextWord();
+    },
 
+    onHanlerClose() {
+      this.commit = false;
+    },
+
+    onKeydownEvent() {
+      /* eslint-disable */
+      document.onkeydown = event => {
+        if (this.timer) {
+          clearTimeout(this.timer);
+        }
+
+        if (event.keyCode === 39) {
+          if (this.count >= this.task) {
+            return;
+          }
           this.timer = setTimeout(() => {
             this.onNextWord();
           }, 200);
         }
+
         if (event.keyCode === 37) {
           this.onPrevWord();
         }
       };
+      /* eslint-disable */
     },
 
     onHandleComplete() {
-      this.onNetworkCommit(this.token);
+      this.onNetworkCommit({
+        token: this.token,
+      });
     },
 
     onHandleNextAnswer() {
@@ -397,17 +486,32 @@ export default {
     async onNetworkLogin(username) {
       const { data } = await login({
         username,
+        /* eslint-disable */
       }).catch(error => {
         this.message = '抱歉，你无权进行数据标记';
         this.$refs.tip.handlerError();
       });
 
-      if (data.status) {
+      if (data.status === 1) {
         this.message = data.msg;
         this.$refs.tip.handlerError();
         return;
       }
 
+      if (data.status !== 0) {
+        this.message = data.msg;
+        this.$refs.tip.handlerError();
+        return;
+      }
+
+      // 初始化工作
+      window.sessionStorage.removeItem('count');
+      window.sessionStorage.removeItem('task');
+      window.sessionStorage.removeItem('username');
+      this.pointer = 0;
+      this.answer = [];
+
+      // 初值设定
       Cookies.setCookie('token', data.token);
       this.visible = false;
       this.username = username;
@@ -415,12 +519,13 @@ export default {
       window.sessionStorage.setItem('username', username);
       this.count = data.action_cnt;
       this.task = data.require_cnt;
+      window.sessionStorage.setItem('count', data.action_cnt);
       window.sessionStorage.setItem('task', data.require_cnt);
 
-      if (data.action_cnt >= data.require_cnt) {
-        this.complete = true;
-        return;
-      }
+      // if (data.action_cnt >= data.require_cnt) {
+      //   this.complete = true;
+      //   return;
+      // }
 
       this.onKeydownEvent();
       // 获取题目
@@ -431,8 +536,12 @@ export default {
       const { data } = await subject({
         token,
         count,
+        /* eslint-disable */
       }).catch(error => {
         this.visible = true;
+        console.log('====================================');
+        console.log();
+        console.log('====================================');
       });
 
       if (data.status) {
@@ -465,21 +574,18 @@ export default {
     },
 
     async onNetworkMark(marker) {
+      /* eslint-disable */
       const { data } = await mark(marker).catch(error => {});
 
       if (data.status) {
         Cookies.setCookie('token', '');
         this.visible = true;
-        return;
       }
     },
 
     async onNetworkValid(entity) {
-      const { data } = await valid(entity).catch(err => {
-        console.log('====================================');
-        console.log(err);
-        console.log('====================================');
-      });
+      /* eslint-disable */
+      const { data } = await valid(entity).catch(err => {});
 
       if (data.status) {
         Cookies.setCookie('token', '');
@@ -488,15 +594,30 @@ export default {
       }
 
       // this.token = data.token;
+      this.username = data.username;
       this.count = data.action_cnt;
+      this.task = data.require_cnt;
+
+      // 防止一开始就显示提交问卷
+      if (this.task && this.count < this.task) {
+        this.complete = false;
+      }
+      window.sessionStorage.setItem('count', data.action_cnt);
+      window.sessionStorage.setItem('task', data.require_cnt);
       this.onKeydownEvent();
     },
 
     async onNetworkCommit(entity) {
+      if (this.task && this.count < this.task) {
+        return;
+      }
+      /* eslint-disable */
       const { data } = await commit(entity).catch(err => {
+        /* eslint-disable */
         console.log('====================================');
         console.log(err);
         console.log('====================================');
+        /* eslint-disable */
       });
 
       if (entity.more_require_cnt) {
@@ -507,8 +628,16 @@ export default {
         return;
       }
 
+      if (data.status) {
+        this.message = data.msg;
+        this.$refs.tip.handlerError();
+        return;
+      }
+
       Cookies.setCookie('token', '');
       window.location.reload();
+      window.sessionStorage.setItem('count', 0);
+      window.sessionStorage.setItem('task', 0);
     },
   },
 };
@@ -616,7 +745,7 @@ export default {
 
     .word-tip {
       position: absolute;
-      bottom: 10px;
+      bottom: 150px;
       padding: 5px 10px;
       border-radius: 2px;
       color: #ffffff;
@@ -633,7 +762,7 @@ export default {
 }
 
 .marker-list {
-  padding: 50px 30px 120px;
+  padding: 20px 30px 120px;
 
   flex: 1;
   display: flex;
@@ -646,6 +775,10 @@ export default {
     margin-left: 20px;
     margin-bottom: 10px;
   }
+}
+
+.marker-bottom {
+  padding-bottom: 0px;
 }
 
 .switch-container:nth-of-type(1) {
