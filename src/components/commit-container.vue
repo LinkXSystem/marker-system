@@ -3,22 +3,21 @@
     v-if="commit"
     class="result-container"
   >
-    <dir class="modal"/>
+    <div
+      class="modal"
+      @click="onCloseModal"
+    />
     <div class="icon-tip">
       <div>
         <img
-          src="../assets/image/question-update.png"
+          src="../assets/image/question.png"
           alt=""
         >
-        <span>提交之后无法取消, 请确认是否提交</span>
+        <!-- <span>提交之后无法取消, 请确认是否提交</span> -->
       </div>
       <div>
-        <span
-          @click="onHandleCommit"
-        >提交</span>
-        <span
-          @click="onCloseModal"
-        >取消</span>
+        <span @click="onHandleCommit">提交</span>
+        <!-- <span @click="onCloseModal">取消</span> -->
       </div>
     </div>
   </section>

@@ -863,14 +863,7 @@ export default {
     }
 
     .username {
-      display: block;
-      color: #2280ca;
-      height: 36px;
-      border-radius: 2px;
-      padding: 0px 10px;
-      line-height: 36px;
-
-      margin-right: 10px;
+      font-size: 12px;
     }
 
     .category-container {
@@ -929,14 +922,7 @@ export default {
     }
 
     .username {
-      display: block;
-      color: #2280ca;
-      height: 36px;
-      border-radius: 2px;
-      padding: 0px 10px;
-      line-height: 36px;
-
-      margin-right: 10px;
+      display: none;
     }
 
     .category-container {
